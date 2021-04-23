@@ -1,0 +1,34 @@
+node
+{
+    def mavenHome = tool name: "maven3.6.3"
+    
+    stage('Checkoutcode')
+    {
+        git branch: 'development', credentialsId: 'eda43cac-8389-4d90-af04-c7e8534c58e7', url: 'https://github.com/DevOps-2021-Naveen/maven-web-application.git'
+    }
+    stage('build')
+    {
+        sh "${mavenHome}/bin/mvn package"
+    }
+    stage('SonarQubeReport')
+    {
+        sh "${mavenHome}/bin/mvn sonar:sonar"
+    }
+    stage('UploadArtifactsToNexus')
+    {
+        sh "${mavenHome}/bin/mvn deploy"
+    }
+    stage('DeployingappintoTomcatserver')
+    {
+        sshagent(['fc51e495-71fd-4a34-a2aa-098d8143439c']) {
+        sh "scp -o StrictHostKeyChecking=no target/maven-web-application.war ec2-user@3.143.207.184:/opt/apache-tomcat-9.0.44/webapps/"
+}
+    }
+    stage('SendEmailNotification')
+    {
+        emailext body: '''Build Successfull
+
+        Regards,
+        Jagan Kumar''', subject: 'Build Successfull', to: '205naveen@gmail.com'
+    }
+}
